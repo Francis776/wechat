@@ -11,6 +11,11 @@
     "summary": {
       "url": "https://github.com/lanvent/plugin_summary.git",
       "desc": "总结聊天记录的插件"
+    },
+     "timetask": {
+      "url": "https://github.com/haikerapples/timetask.git",
+      "desc": "早报：$time 每天 10:30 早报  示例 - 点歌：$time 明天 10:30 点歌 演员 示例 - 点歌：$time 每周三 10:30 搜索 乌克兰局势"
     }
+    
   }
 }
