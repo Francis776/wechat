@@ -11,7 +11,7 @@
   ],
   "kwargs": {
     "top_k_results": 2,
-    "think_depth": 3,
+    "think_depth": 1,
     "no_default": false,
     "model_name": "gpt-3.5-turbo-16k-0613",
     "bing_subscription_key": "2eb0bf60ee774223b927846778a7a9b7",
