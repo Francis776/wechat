@@ -15,7 +15,10 @@
      "timetask": {
       "url": "https://github.com/Francis776/timetask.git",
       "desc": "时间管理插件"
-    }
+    },
+    "newgpt_turbo": {
+      "url": "https://github.com/Francis776/newgpt-wechat.git",
+      "desc": "实现GPT的API联网功能"
     
   }
 }
