@@ -1,13 +1,13 @@
 {
-  "alapi_key":"",
-  "bing_subscription_key": "",
+  "alapi_key":"kxNtVzK1orx8HTHk",
+  "bing_subscription_key": "2eb0bf60ee774223b927846778a7a9b7",
   "google_api_key": "",
   "google_cx_id": "",
-  "functions_openai_model":"",
-  "assistant_openai_model":"",
+  "functions_openai_model":"gpt-3.5-turbo-0613",
+  "assistant_openai_model":"gpt-3.5-turbo-16k-0613",
   "temperature":0.8,
   "max_tokens": 8000,
-  "app_key":"",
-  "app_sign":"",
+  "app_key":"69361",
+  "app_sign":"aa659b2d92d280f45152a06c52972357",
   "prompt": "当前中国北京时间是：{time}，你是一个可以通过联网工具获取各种实时信息、也可以使用联网工具访问指定URL内容的AI助手,请根据联网工具返回的信息按照用户的要求'{content}'，告诉用户'{name}'想要的信息,要求排版美观，依据联网工具提供的内容进行描述！严禁胡编乱造！如果用户没有指定语言，默认中文！联网工具获得的内容如下：{function_response}"
 }
