@@ -58,19 +58,19 @@ class ChatChannel(Channel):
                 group_name_white_list = config.get("group_name_white_list", [])
                 group_name_keyword_white_list = config.get("group_name_keyword_white_list", [])
                 if any(
-                    [
-                        group_name in group_name_white_list,
-                        "ALL_GROUP" in group_name_white_list,
-                        check_contain(group_name, group_name_keyword_white_list),
-                    ]
+                        [
+                            group_name in group_name_white_list,
+                            "ALL_GROUP" in group_name_white_list,
+                            check_contain(group_name, group_name_keyword_white_list),
+                        ]
                 ):
                     group_chat_in_one_session = conf().get("group_chat_in_one_session", [])
                     session_id = cmsg.actual_user_id
                     if any(
-                        [
-                            group_name in group_chat_in_one_session,
-                            "ALL_GROUP" in group_chat_in_one_session,
-                        ]
+                            [
+                                group_name in group_chat_in_one_session,
+                                "ALL_GROUP" in group_chat_in_one_session,
+                            ]
                     ):
                         session_id = group_id
                 else:
@@ -80,7 +80,8 @@ class ChatChannel(Channel):
             else:
                 context["session_id"] = cmsg.other_user_id
                 context["receiver"] = cmsg.other_user_id
-            e_context = PluginManager().emit_event(EventContext(Event.ON_RECEIVE_MESSAGE, {"channel": self, "context": context}))
+            e_context = PluginManager().emit_event(
+                EventContext(Event.ON_RECEIVE_MESSAGE, {"channel": self, "context": context}))
             context = e_context["context"]
             if e_context.is_pass() or context is None:
                 return context
@@ -130,10 +131,12 @@ class ChatChannel(Channel):
             else:
                 context.type = ContextType.TEXT
             context.content = content.strip()
-            if "desire_rtype" not in context and conf().get("always_reply_voice") and ReplyType.VOICE not in self.NOT_SUPPORT_REPLYTYPE:
+            if "desire_rtype" not in context and conf().get(
+                    "always_reply_voice") and ReplyType.VOICE not in self.NOT_SUPPORT_REPLYTYPE:
                 context["desire_rtype"] = ReplyType.VOICE
         elif context.type == ContextType.VOICE:
-            if "desire_rtype" not in context and conf().get("voice_reply_voice") and ReplyType.VOICE not in self.NOT_SUPPORT_REPLYTYPE:
+            if "desire_rtype" not in context and conf().get(
+                    "voice_reply_voice") and ReplyType.VOICE not in self.NOT_SUPPORT_REPLYTYPE:
                 context["desire_rtype"] = ReplyType.VOICE
 
         return context
@@ -153,6 +156,8 @@ class ChatChannel(Channel):
         self._send_reply(context, reply)
 
     def _generate_reply(self, context: Context, reply: Reply = Reply()) -> Reply:
+        logger.debug(
+            "[WX] _generate_reply invoked with context: type={}, content={}".format(context.type, context.content))
         e_context = PluginManager().emit_event(
             EventContext(
                 Event.ON_HANDLE_CONTEXT,
@@ -162,10 +167,9 @@ class ChatChannel(Channel):
         reply = e_context["reply"]
         if not e_context.is_pass():
             logger.debug("[WX] ready to handle context: type={}, content={}".format(context.type, context.content))
-            if e_context.is_break():
-                context["generate_breaked_by"] = e_context["breaked_by"]
             if context.type == ContextType.TEXT or context.type == ContextType.IMAGE_CREATE:  # 文字和图片消息
                 reply = super().build_reply_content(context.content, context)
+                logger.debug("[WX] Text/Image message, reply generated: {}".format(reply))
             elif context.type == ContextType.VOICE:  # 语音消息
                 cmsg = context["msg"]
                 cmsg.prepare()
@@ -173,34 +177,39 @@ class ChatChannel(Channel):
                 wav_path = os.path.splitext(file_path)[0] + ".wav"
                 try:
                     any_to_wav(file_path, wav_path)
+                    logger.debug("[WX] wav file created: {}".format(wav_path))
                 except Exception as e:  # 转换失败，直接使用mp3，对于某些api，mp3也可以识别
                     logger.warning("[WX]any to wav error, use raw path. " + str(e))
                     wav_path = file_path
                 # 语音识别
                 reply = super().build_voice_to_text(wav_path)
+                logger.debug("[WX] Voice message, reply generated: {}".format(reply))
                 # 删除临时文件
                 try:
                     os.remove(file_path)
                     if wav_path != file_path:
                         os.remove(wav_path)
                 except Exception as e:
-                    pass
-                    # logger.warning("[WX]delete temp file error: " + str(e))
-
+                    logger.warning("[WX]delete temp file error: " + str(e))
                 if reply.type == ReplyType.TEXT:
                     new_context = self._compose_context(ContextType.TEXT, reply.content, **context.kwargs)
                     if new_context:
                         reply = self._generate_reply(new_context)
+                        logger.debug("[WX] New reply generated after converting voice to text: {}".format(reply))
                     else:
                         return
             elif context.type == ContextType.IMAGE:  # 图片消息，当前无默认逻辑
+                logger.debug("[WX] Image message, no default logic.")
                 pass
             else:
                 logger.error("[WX] unknown context type: {}".format(context.type))
                 return
+        logger.debug("[WX] _generate_reply completed. Final reply: {}".format(reply))
         return reply
 
     def _decorate_reply(self, context: Context, reply: Reply) -> Reply:
+        logger.debug(
+            "[WX] _decorate_reply invoked with context: type={}, content={}".format(context.type, context.content))
         if reply and reply.type:
             e_context = PluginManager().emit_event(
                 EventContext(
@@ -211,34 +220,40 @@ class ChatChannel(Channel):
             reply = e_context["reply"]
             desire_rtype = context.get("desire_rtype")
             if not e_context.is_pass() and reply and reply.type:
+                logger.debug("[WX] Decorating reply: type={}, content={}".format(reply.type, reply.content))
                 if reply.type in self.NOT_SUPPORT_REPLYTYPE:
                     logger.error("[WX]reply type not support: " + str(reply.type))
                     reply.type = ReplyType.ERROR
                     reply.content = "不支持发送的消息类型: " + str(reply.type)
-
-                if reply.type == ReplyType.TEXT:
+                elif reply.type == ReplyType.TEXT:
                     reply_text = reply.content
                     if desire_rtype == ReplyType.VOICE and ReplyType.VOICE not in self.NOT_SUPPORT_REPLYTYPE:
                         reply = super().build_text_to_voice(reply.content)
                         return self._decorate_reply(context, reply)
                     if context.get("isgroup", False):
                         reply_text = "@" + context["msg"].actual_user_nickname + "\n" + reply_text.strip()
-                        reply_text = conf().get("group_chat_reply_prefix", "") + reply_text + conf().get("group_chat_reply_suffix", "")
+                        reply_text = conf().get("group_chat_reply_prefix", "") + reply_text
                     else:
-                        reply_text = conf().get("single_chat_reply_prefix", "") + reply_text + conf().get("single_chat_reply_suffix", "")
+                        reply_text = conf().get("single_chat_reply_prefix", "") + reply_text
                     reply.content = reply_text
                 elif reply.type == ReplyType.ERROR or reply.type == ReplyType.INFO:
                     reply.content = "[" + str(reply.type) + "]\n" + reply.content
                 elif reply.type == ReplyType.IMAGE_URL or reply.type == ReplyType.VOICE or reply.type == ReplyType.IMAGE:
                     pass
+                elif reply.type == ReplyType.VIDEO_URL:
+                    pass
                 else:
                     logger.error("[WX] unknown reply type: {}".format(reply.type))
                     return
             if desire_rtype and desire_rtype != reply.type and reply.type not in [ReplyType.ERROR, ReplyType.INFO]:
-                logger.warning("[WX] desire_rtype: {}, but reply type: {}".format(context.get("desire_rtype"), reply.type))
+                logger.warning(
+                    "[WX] desire_rtype: {}, but reply type: {}".format(context.get("desire_rtype"), reply.type))
+            logger.debug(
+                "[WX] _decorate_reply completed. Final reply: type={}, content={}".format(reply.type, reply.content))
             return reply
 
     def _send_reply(self, context: Context, reply: Reply):
+        logger.debug("[WX] _send_reply invoked with context: type={}, content={}".format(context.type, context.content))
         if reply and reply.type:
             e_context = PluginManager().emit_event(
                 EventContext(
@@ -248,18 +263,24 @@ class ChatChannel(Channel):
             )
             reply = e_context["reply"]
             if not e_context.is_pass() and reply and reply.type:
-                logger.debug("[WX] ready to send reply: {}, context: {}".format(reply, context))
+                logger.debug("[WX] ready to send reply: type={}, content={}".format(reply.type, reply.content))
                 self._send(reply, context)
+                logger.debug("[WX] Reply sent successfully.")
 
     def _send(self, reply: Reply, context: Context, retry_cnt=0):
+        logger.debug(
+            "[WX] _send invoked with reply: type={}, content={}, context: type={}, content={}, retry count: {}".format(
+                reply.type, reply.content, context.type, context.content, retry_cnt))
         try:
             self.send(reply, context)
+            logger.debug("[WX] Send successful.")
         except Exception as e:
             logger.error("[WX] sendMsg error: {}".format(str(e)))
             if isinstance(e, NotImplementedError):
                 return
             logger.exception(e)
             if retry_cnt < 2:
+                logger.debug("[WX] Retry sending, retry count: {}".format(retry_cnt + 1))
                 time.sleep(3 + 3 * retry_cnt)
                 self._send(reply, context, retry_cnt + 1)
 
@@ -288,6 +309,9 @@ class ChatChannel(Channel):
 
     def produce(self, context: Context):
         session_id = context["session_id"]
+        logger.debug("[WX] produce invoked with context: type={}, content={}, session_id: {}".format(context.type,
+                                                                                                     context.content,
+                                                                                                     session_id))
         with self.lock:
             if session_id not in self.sessions:
                 self.sessions[session_id] = [
@@ -295,9 +319,10 @@ class ChatChannel(Channel):
                     threading.BoundedSemaphore(conf().get("concurrency_in_session", 4)),
                 ]
             if context.type == ContextType.TEXT and context.content.startswith("#"):
-                self.sessions[session_id][0].putleft(context)  # 优先处理管理命令
+                self.sessions[session_id][0].putleft(context)
             else:
                 self.sessions[session_id][0].put(context)
+            logger.debug("[WX] Context added to the session queue, session_id = {}".format(session_id))
 
     # 消费者函数，单独线程，用于从消息队列中取出消息并处理
     def consume(self):
@@ -306,21 +331,23 @@ class ChatChannel(Channel):
                 session_ids = list(self.sessions.keys())
                 for session_id in session_ids:
                     context_queue, semaphore = self.sessions[session_id]
-                    if semaphore.acquire(blocking=False):  # 等线程处理完毕才能删除
+                    if semaphore.acquire(blocking=False):
                         if not context_queue.empty():
                             context = context_queue.get()
                             logger.debug("[WX] consume context: {}".format(context))
+                            logger.debug("[WX] msg from context kwargs: {}".format(context.kwargs['msg']))
                             future: Future = self.handler_pool.submit(self._handle, context)
                             future.add_done_callback(self._thread_pool_callback(session_id, context=context))
                             if session_id not in self.futures:
                                 self.futures[session_id] = []
                             self.futures[session_id].append(future)
-                        elif semaphore._initial_value == semaphore._value + 1:  # 除了当前，没有任务再申请到信号量，说明所有任务都处理完毕
+                        elif semaphore._initial_value == semaphore._value + 1:
                             self.futures[session_id] = [t for t in self.futures[session_id] if not t.done()]
                             assert len(self.futures[session_id]) == 0, "thread pool error"
                             del self.sessions[session_id]
                         else:
                             semaphore.release()
+                    # logger.debug("[WX] Consuming cycle completed for session_id = {}".format(session_id))
             time.sleep(0.1)
 
     # 取消session_id对应的所有任务，只能取消排队的消息和已提交线程池但未执行的任务
@@ -346,18 +373,22 @@ class ChatChannel(Channel):
 
 
 def check_prefix(content, prefix_list):
+    logger.debug("[WX] check_prefix invoked with content: {}, prefix_list: {}".format(content, prefix_list))
     if not prefix_list:
         return None
     for prefix in prefix_list:
         if content.startswith(prefix):
+            logger.debug("[WX] Prefix match found: {}".format(prefix))
             return prefix
     return None
 
 
 def check_contain(content, keyword_list):
+    logger.debug("[WX] check_contain invoked with content: {}, keyword_list: {}".format(content, keyword_list))
     if not keyword_list:
         return None
     for ky in keyword_list:
         if content.find(ky) != -1:
+            logger.debug("[WX] Keyword match found: {}".format(ky))
             return True
     return None
