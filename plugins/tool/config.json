@@ -13,7 +13,7 @@
     "top_k_results": 2,
     "think_depth": 1,
     "no_default": false,
-    "model_name": "gpt-3.5-turbo-16k-0613",
+    "model_name": "gpt-4",
     "bing_subscription_key": "2eb0bf60ee774223b927846778a7a9b7",
     "news_api_key": "090de6a2318d43c195eccf4ba4e6c976",
     "morning_news_api_key": "kxNtVzK1orx8HTHk",
